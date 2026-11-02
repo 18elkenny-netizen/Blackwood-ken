@@ -7,10 +7,10 @@ const path = require("path");
 module.exports = {
 	config: {
 		name: "uid",
-		version: "1.3",
-		author: "Samycharles × Gemini",
+		version: "1.4",
+		author: "Samycharles",
 		role: 0,
-		shortDescription: "Carte UID avec avatar (supporte le reply)",
+		shortDescription: "Carte UID avec photo de profil",
 		category: "utility"
 	},
 
@@ -27,12 +27,68 @@ module.exports = {
 
 		const bannerPath = path.join(
 			cacheDir,
-			`uid_banner_${uid}_${Date.now()}.png`
+			`uid_${uid}_${Date.now()}.png`
 		);
 
 		try {
 			const name = await usersData.getName(uid) || "Utilisateur";
 
+			// Récupération des informations Facebook
+			let userInfo = null;
+
+			try {
+				userInfo = await new Promise((resolve, reject) => {
+					const timeout = setTimeout(() => {
+						reject(new Error("Délai de récupération du profil dépassé"));
+					}, 12000);
+
+					api.getUserInfo(uid, (err, info) => {
+						clearTimeout(timeout);
+
+						if (err) return reject(err);
+
+						resolve(info);
+					});
+				});
+			} catch (error) {
+				console.log("[UID] Erreur getUserInfo :", error.message);
+			}
+
+			// Récupération de l'URL de la photo
+			const avatarURL =
+				userInfo?.[uid]?.thumbSrc ||
+				userInfo?.[uid]?.profilePic ||
+				userInfo?.[uid]?.photoUrl ||
+				null;
+
+			let avatar = null;
+
+			if (avatarURL) {
+				try {
+					const response = await axios.get(avatarURL, {
+						responseType: "arraybuffer",
+						timeout: 15000,
+						headers: {
+							"User-Agent": "Mozilla/5.0"
+						}
+					});
+
+					avatar = await loadImage(
+						Buffer.from(response.data)
+					);
+
+					console.log("[UID] Photo de profil récupérée :", uid);
+				} catch (error) {
+					console.log(
+						"[UID] Impossible de charger la photo :",
+						error.message
+					);
+				}
+			} else {
+				console.log("[UID] Aucune URL de photo trouvée :", uid);
+			}
+
+			// Création de la carte
 			const canvas = createCanvas(1200, 400);
 			const ctx = canvas.getContext("2d");
 
@@ -48,55 +104,35 @@ module.exports = {
 			ctx.fillStyle = gradient;
 			ctx.fillRect(0, 0, 1200, 400);
 
-			// Avatar de remplacement
+			// Cercle de l'avatar
 			ctx.save();
 			ctx.beginPath();
 			ctx.arc(180, 200, 110, 0, Math.PI * 2);
 			ctx.closePath();
 			ctx.clip();
 
-			ctx.fillStyle = "#1f2937";
-			ctx.fillRect(70, 90, 220, 220);
-
-			ctx.fillStyle = "#ffffff";
-			ctx.font = "bold 100px Arial";
-			ctx.textAlign = "center";
-			ctx.textBaseline = "middle";
-			ctx.fillText(
-				String(name).charAt(0).toUpperCase(),
-				180,
-				200
-			);
-			ctx.restore();
-
-			// Tentative de récupération de l'avatar Facebook
-			try {
-				const avatarURL =
-					`https://graph.facebook.com/${uid}/picture?width=512&height=512`;
-
-				const response = await axios.get(avatarURL, {
-					responseType: "arraybuffer",
-					timeout: 10000,
-					maxRedirects: 5
-				});
-
-				const avatar = await loadImage(Buffer.from(response.data));
-
-				ctx.save();
-				ctx.beginPath();
-				ctx.arc(180, 200, 110, 0, Math.PI * 2);
-				ctx.clip();
+			if (avatar) {
+				// Photo réelle du joueur
 				ctx.drawImage(avatar, 70, 90, 220, 220);
-				ctx.restore();
+			} else {
+				// Avatar de remplacement
+				ctx.fillStyle = "#1f2937";
+				ctx.fillRect(70, 90, 220, 220);
 
-			} catch (avatarError) {
-				console.log(
-					"[UID] Avatar indisponible :",
-					avatarError.message
+				ctx.fillStyle = "#ffffff";
+				ctx.font = "bold 100px Arial";
+				ctx.textAlign = "center";
+				ctx.textBaseline = "middle";
+				ctx.fillText(
+					String(name).charAt(0).toUpperCase(),
+					180,
+					200
 				);
 			}
 
-			// Bordure de l'avatar
+			ctx.restore();
+
+			// Bordure
 			ctx.strokeStyle = "#ffffff";
 			ctx.lineWidth = 6;
 			ctx.beginPath();
@@ -114,6 +150,7 @@ module.exports = {
 			ctx.font = "32px Arial";
 			ctx.fillText(`UID : ${uid}`, 350, 190);
 			ctx.fillText(`Groupe : ${event.threadID}`, 350, 250);
+
 			ctx.fillText(
 				`Date : ${new Date().toLocaleDateString("fr-FR")}`,
 				350,
@@ -125,18 +162,23 @@ module.exports = {
 			ctx.fillText("USER INFORMATION CARD", 350, 360);
 
 			// Sauvegarde
-			fs.writeFileSync(bannerPath, canvas.toBuffer("image/png"));
+			fs.writeFileSync(
+				bannerPath,
+				canvas.toBuffer("image/png")
+			);
 
 			return api.sendMessage(
 				{
-					body: `👤 Informations de : ${name}\n🆔 UID : ${uid}`,
+					body:
+						`👤 Informations de : ${name}\n` +
+						`🆔 UID : ${uid}`,
 					attachment: fs.createReadStream(bannerPath)
 				},
 				event.threadID,
 				() => {
 					try {
 						fs.unlinkSync(bannerPath);
-					} catch (e) {}
+					} catch (error) {}
 				},
 				event.messageID
 			);
@@ -148,7 +190,7 @@ module.exports = {
 				if (fs.existsSync(bannerPath)) {
 					fs.unlinkSync(bannerPath);
 				}
-			} catch (e) {}
+			} catch (error) {}
 
 			return api.sendMessage(
 				`❌ Impossible de générer la carte : ${err.message}`,
