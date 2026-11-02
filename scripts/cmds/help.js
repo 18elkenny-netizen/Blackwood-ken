@@ -1,151 +1,314 @@
+
 const { commands } = global.GoatBot;
 const config = global.GoatBot.config;
 const fonts = require("../func/fonts.js");
 
+const CATEGORY_ORDER = [
+  "admin",
+  "ai",
+  "anime",
+  "contacts admin",
+  "download",
+  "economy",
+  "fun",
+  "game",
+  "image",
+  "media",
+  "owner",
+  "security",
+  "settings",
+  "system",
+  "tools",
+  "utility"
+];
+
+const CATEGORY_DESIGNS = {
+  "admin": "⚔️ 𝐀𝐃𝐌𝐈𝐍",
+  "ai": "🤖 𝐀𝐈",
+  "anime": "⛩️ 𝐀𝐍𝐈𝐌𝐄",
+  "contacts admin": "📞 𝐂𝐎𝐍𝐓𝐀𝐂𝐓𝐒 𝐀𝐃𝐌𝐈𝐍",
+  "download": "📥 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃",
+  "economy": "💰 𝐄𝐂𝐎𝐍𝐎𝐌𝐘",
+  "fun": "🎭 𝐅𝐔𝐍",
+  "game": "🎮 𝐆𝐀𝐌𝐄 & 𝐅𝐔𝐍",
+  "image": "🎨 𝐈𝐌𝐀𝐆𝐄",
+  "media": "🎧 𝐌𝐄𝐃𝐈𝐀",
+  "owner": "👑 𝐎𝐖𝐍𝐄𝐑",
+  "security": "🛡️ 𝐒𝐄𝐂𝐔𝐑𝐈𝐓𝐘",
+  "settings": "⚙️ 𝐒𝐄𝐓𝐓𝐈𝐍𝐆𝐒",
+  "system": "💻 𝐒𝐘𝐒𝐓𝐄𝐌",
+  "tools": "🧰 𝐓𝐎𝐎𝐋𝐒",
+  "utility": "🔧 𝐔𝐓𝐈𝐋𝐈𝐓𝐘"
+};
+
+const CATEGORY_ICONS = {
+  "admin": "⚔️",
+  "ai": "🤖",
+  "anime": "⛩️",
+  "contacts admin": "📞",
+  "download": "📥",
+  "economy": "💰",
+  "fun": "🎭",
+  "game": "🎮",
+  "image": "🎨",
+  "media": "🎧",
+  "owner": "👑",
+  "security": "🛡️",
+  "settings": "⚙️",
+  "system": "💻",
+  "tools": "🧰",
+  "utility": "🔧",
+  "other": "📁"
+};
+
+function normalizeCategory(category) {
+  return String(category || "other").trim().toLowerCase();
+}
+
+function buildHelpMenu() {
+  const cats = {};
+
+  for (const [name, cmd] of commands) {
+    const commandConfig = cmd?.config || {};
+    const category = normalizeCategory(commandConfig.category);
+
+    if (!cats[category]) cats[category] = [];
+
+    cats[category].push(commandConfig.name || name);
+  }
+
+  for (const category of Object.keys(cats)) {
+    cats[category].sort((a, b) => a.localeCompare(b));
+  }
+
+  const orderedCategories = [
+    ...CATEGORY_ORDER.filter(category => cats[category]),
+    ...Object.keys(cats)
+      .filter(category => !CATEGORY_ORDER.includes(category))
+      .sort()
+  ];
+
+  let menu = [
+    "𓆩 𝐃𝐀𝐑𝐊 𝐒𝐘𝐒𝐓𝐄𝐌 𓆪",
+    "⛧ 𝐎𝐅𝐅𝐈𝐂𝐈𝐀𝐋 𝐂𝐎𝐌𝐌𝐀𝐍𝐃 𝐂𝐄𝐍𝐓𝐄𝐑 ⛧",
+    "━━━━━━━━━━━━━━━━━━━━",
+    "☠️ 𝐌𝐄𝐍𝐔 𝐃𝐄𝐒 𝐂𝐎𝐌𝐌𝐀𝐍𝐃𝐄𝐒 ☠️",
+    `『 ${commands.size} 𝐂𝐎𝐌𝐌𝐀𝐍𝐃𝐄𝐒 • ${orderedCategories.length} 𝐂𝐀𝐓𝐄𝐆𝐎𝐑𝐈𝐄𝐒 』`
+  ].join("\n");
+
+  for (const category of orderedCategories) {
+    const list = cats[category];
+    const title = CATEGORY_DESIGNS[category] ||
+      `${CATEGORY_ICONS[category] || "📁"} 𝐎𝐓𝐇𝐄𝐑 : ${category.toUpperCase()}`;
+
+    menu += `\n\n𓆩 ${title} 𓆪`;
+    menu += `\n╰➤ ${list.map(name => `• ${name}`).join("  ")}`;
+    menu += `\n<${list.length} commande${list.length > 1 ? "s" : ""}>`;
+  }
+
+  const p = config.prefix || "~";
+
+  menu += [
+    "",
+    "━━━━━━━━━━━━━━━━━━━━",
+    "𓆩 🩸 𝐂𝐎𝐌𝐌𝐀𝐍𝐃 𝐆𝐔𝐈𝐃𝐄 𓆪",
+    `➤ ${p}help <commande>`,
+    `➤ ${p}help basics`,
+    `➤ ${p}help search <mot>`,
+    "━━━━━━━━━━━━━━━━━━━━",
+    "☠️ 𝐃𝐄𝐕𝐄𝐋𝐎𝐏𝐄𝐃 𝐁𝐘 @𝐒𝐇𝐀𝐃𝐄 🎀",
+    "⛧ 𝐖𝐄𝐋𝐂𝐎𝐌𝐄 𝐓𝐎 𝐓𝐇𝐄 𝐃𝐀𝐑𝐊 𝐒𝐈𝐃𝐄 ⛧"
+  ].join("\n");
+
+  return {
+    menu,
+    total: commands.size,
+    categoryCount: orderedCategories.length,
+    categories: orderedCategories
+  };
+}
+
+// Permet à updatehelp de reconstruire le menu.
+global.GoatBot.refreshHelpMenu = function () {
+  global.GoatBot.helpMenuCache = buildHelpMenu();
+  return global.GoatBot.helpMenuCache;
+};
+
 module.exports = {
   config: {
     name: "help",
-    version: "10.6",
+    version: "11.0",
     author: "Shade × Christus",
     countDown: 2,
     role: 0,
     category: "system",
     guide: "help [commande | search <mot>]"
   },
-  onStart: async function ({ message, args }) {
-    const p = config.prefix || "!";
 
-    // ───── CAS RECHERCHE (help search <mot>) ─────
+  onStart: async function ({ message, args }) {
+    const p = config.prefix || "~";
+
+    // RECHERCHE
     if (args[0] && args[0].toLowerCase() === "search") {
       const keyword = args.slice(1).join(" ").toLowerCase();
+
       if (!keyword) {
-        return message.reply(fonts.christus(`❌ Veuillez entrer un mot-clé à rechercher. Utilisation : ${p}help search <mot>`));
+        return message.reply(
+          `❌ Utilisation : ${p}help search <mot>`
+        );
       }
 
       const matchedCmds = [];
+
       for (const [name, cmd] of commands) {
         const c = cmd.config || {};
         const cmdName = (c.name || name).toLowerCase();
-        
+
         let descStr = "";
-        if (typeof c.shortDescription === "string") descStr = c.shortDescription;
-        else if (c.shortDescription && typeof c.shortDescription.en === "string") descStr = c.shortDescription.en;
-        else if (typeof c.description === "string") descStr = c.description;
-        else if (c.description && typeof c.description.en === "string") descStr = c.description.en;
 
-        const aliases = c.aliases ? c.aliases.map(a => a.toLowerCase()) : [];
+        if (typeof c.shortDescription === "string") {
+          descStr = c.shortDescription;
+        } else if (c.shortDescription?.fr) {
+          descStr = c.shortDescription.fr;
+        } else if (c.shortDescription?.en) {
+          descStr = c.shortDescription.en;
+        } else if (typeof c.description === "string") {
+          descStr = c.description;
+        } else if (c.description?.fr) {
+          descStr = c.description.fr;
+        } else if (c.description?.en) {
+          descStr = c.description.en;
+        }
 
-        if (cmdName.includes(keyword) || descStr.toLowerCase().includes(keyword) || aliases.some(a => a.includes(keyword))) {
-          matchedCmds.push({ name: c.name || name, config: c });
+        const aliases = Array.isArray(c.aliases)
+          ? c.aliases.map(a => String(a).toLowerCase())
+          : [];
+
+        if (
+          cmdName.includes(keyword) ||
+          descStr.toLowerCase().includes(keyword) ||
+          aliases.some(a => a.includes(keyword))
+        ) {
+          matchedCmds.push({
+            name: c.name || name,
+            config: c,
+            description: descStr
+          });
         }
       }
 
-      if (matchedCmds.length === 0) {
-        return message.reply(fonts.christus(`❌ Aucune commande trouvée pour "${keyword}".`));
+      if (!matchedCmds.length) {
+        return message.reply(
+          `❌ Aucune commande trouvée pour "${keyword}".`
+        );
       }
 
-      let resultMsg = `🔎 ${fonts.developed("Search Results")} (${matchedCmds.length})`;
-      
+      let resultMsg =
+        `🔎 𝐒𝐄𝐀𝐑𝐂𝐇 𝐑𝐄𝐒𝐔𝐋𝐓𝐒 (${matchedCmds.length})`;
+
       for (const item of matchedCmds) {
         const c = item.config;
-        const rawName = c.name || "unknown";
-        
-        let descStr = "";
-        if (typeof c.shortDescription === "string") descStr = c.shortDescription;
-        else if (c.shortDescription && typeof c.shortDescription.en === "string") descStr = c.shortDescription.en;
-        else if (typeof c.description === "string") descStr = c.description;
-        else if (c.description && typeof c.description.en === "string") descStr = c.description.en;
+        const aliases = c.aliases?.length
+          ? c.aliases.join(", ")
+          : "Aucun";
 
-        const aliases = c.aliases && c.aliases.length > 0 ? c.aliases.join(", ") : "None";
-        const guide = c.guide?.fr || c.guide?.en || (typeof c.guide === "string" ? c.guide : "");
+        const guide =
+          c.guide?.fr ||
+          c.guide?.en ||
+          (typeof c.guide === "string" ? c.guide : "");
 
-        resultMsg += `\n\n📁 +${fonts.christus(rawName)}`;
-        
-        if (!descStr || descStr.trim() === "" || descStr.toLowerCase() === "none") {
-          resultMsg += `\n➜ 𝗡𝗈 𝗗𝖾𝗌𝖼𝗋𝗂𝗉𝗍𝗂𝗈𝗇`;
-        } else {
-          resultMsg += `\n➜ ${fonts.christus(descStr)}`;
-        }
+        resultMsg += `\n\n𓆩 📁 ${item.name} 𓆪`;
+        resultMsg += `\n➤ ${item.description || "Aucune description"}`;
+        resultMsg += `\n➤ Alias : ${aliases}`;
 
-        resultMsg += `\n𝗔𝗅𝗂𝖺𝗌𝖾𝗌: ${fonts.christus(aliases)}`;
         if (guide) {
-          resultMsg += `\n➜ ${fonts.christus(guide)}`;
+          resultMsg += `\n➤ Guide : ${guide}`;
         }
       }
 
-      resultMsg += `\n\n➜ 𝐃𝐞𝐯𝐞𝐥𝐨𝐩𝐞𝐝 𝐛𝐲 @𝐒𝐡𝐚𝐝𝐞 🎀`;
+      resultMsg += "\n\n☠️ 𝐃𝐄𝐕𝐄𝐋𝐎𝐏𝐄𝐃 𝐁𝐘 @𝐒𝐇𝐀𝐃𝐄 🎀";
+
       return message.reply(fonts.christus(resultMsg));
     }
 
-    // ───── DÉTAIL COMMANDE (help <commande>) ─────
+    // DÉTAIL D'UNE COMMANDE
     if (args[0]) {
       const search = args[0].toLowerCase();
+
       const cmd = commands.get(search) ||
-        Array.from(commands.values())
-          .find(c => c.config?.aliases?.includes(search));
-      
-      if (!cmd) return message.reply(fonts.christus("❌ Commande introuvable."));
-      const c = cmd.config;
+        Array.from(commands.values()).find(c =>
+          c.config?.aliases?.some(alias =>
+            String(alias).toLowerCase() === search
+          )
+        );
 
+      if (!cmd) {
+        return message.reply("❌ Commande introuvable.");
+      }
+
+      const c = cmd.config || {};
       const rawName = c.name || "Unknown";
-      const capitalizedName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
       const author = c.author || "Unknown";
-      
-      let descStr = "None";
-      if (typeof c.shortDescription === "string") descStr = c.shortDescription;
-      else if (c.shortDescription && typeof c.shortDescription.en === "string") descStr = c.shortDescription.en;
-      else if (typeof c.description === "string") descStr = c.description;
-      else if (c.description && typeof c.description.en === "string") descStr = c.description.en;
 
-      const usage = c.guide?.fr || c.guide?.en || (typeof c.guide === "string" ? c.guide : "No guide available");
+      let descStr = "Aucune description";
+
+      if (typeof c.shortDescription === "string") {
+        descStr = c.shortDescription;
+      } else if (c.shortDescription?.fr) {
+        descStr = c.shortDescription.fr;
+      } else if (c.shortDescription?.en) {
+        descStr = c.shortDescription.en;
+      } else if (typeof c.description === "string") {
+        descStr = c.description;
+      } else if (c.description?.fr) {
+        descStr = c.description.fr;
+      } else if (c.description?.en) {
+        descStr = c.description.en;
+      }
+
+      const usage =
+        c.guide?.fr ||
+        c.guide?.en ||
+        (typeof c.guide === "string" ? c.guide : "Aucun guide disponible");
+
       const category = c.category || "other";
       const cooldown = `${c.countDown || 0}s`;
-      let roleText = "All users";
-      if (c.role === 1) roleText = "Moderator";
-      if (c.role === 2) roleText = "Admin";
-      const aliases = c.aliases && c.aliases.length > 0 ? c.aliases.join(", ") : "None";
+      const roleText = {
+        0: "Tous les utilisateurs",
+        1: "Modérateur du groupe",
+        2: "VIP",
+        3: "Premium",
+        4: "Administrateur du bot",
+        5: "Développeur",
+        6: "Créateur"
+      }[c.role] || "Tous les utilisateurs";
 
-      const detailMsg = `╭─── 📄 ${fonts.developed(capitalizedName)} ───` +
-        `\n│ ➤ 𝗡𝖺𝗆𝖾: ${fonts.christus(rawName)}` +
-        `\n│ ➤ 𝗔𝗎𝗍𝗁𝗈𝗋: ${fonts.christus(author)}` +
-        `\n│ ➤ 𝗗𝖾𝗌𝖼𝗋𝗂𝗉𝗍𝗂𝗈𝗇: ${fonts.christus(descStr)}` +
-        `\n│ ➤ 𝗨𝗌𝖺𝗀𝖾: ${fonts.mono(usage)}` +
-        `\n│ ➤ 𝗖𝖺𝗍𝖾𝗀𝗈𝗋𝗒: ${fonts.christus(category)}` +
-        `\n│ ➤ 𝗖𝗈𝗈𝗅𝖽𝗈𝗐𝗇: ${fonts.christus(cooldown)}` +
-        `\n│ ➤ 𝗥𝗈𝗅𝖾: ${fonts.christus(roleText)}` +
-        `\n│ ➤ 𝗔𝗅𝗂𝖺𝗌𝖾𝗌: ${fonts.christus(aliases)}` +
-        `\n╰────────────────`;
+      const aliases = c.aliases?.length
+        ? c.aliases.join(", ")
+        : "Aucun";
+
+      const detailMsg = [
+        `𓆩 📄 𝐂𝐎𝐌𝐌𝐀𝐍𝐃𝐄 : ${rawName.toUpperCase()} 𓆪`,
+        "━━━━━━━━━━━━━━━━━━━━",
+        `👤 Auteur : ${author}`,
+        `📝 Description : ${descStr}`,
+        `📌 Utilisation : ${usage}`,
+        `📁 Catégorie : ${category}`,
+        `⏱️ Cooldown : ${cooldown}`,
+        `🛡️ Rôle : ${roleText}`,
+        `🔗 Alias : ${aliases}`,
+        "━━━━━━━━━━━━━━━━━━━━"
+      ].join("\n");
 
       return message.reply(fonts.christus(detailMsg));
     }
 
-    // ───── MENU GLOBAL ─────
-    const cats = {};
-    for (const [name, cmd] of commands) {
-      let cat = cmd?.config?.category || "other";
-      cat = cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase();
-      if (!cats[cat]) cats[cat] = [];
-      cats[cat].push(name);
-    }
+    // MENU GLOBAL
+    const data = global.GoatBot.helpMenuCache ||
+      buildHelpMenu();
 
-    let menu = `🔍 𝐀𝐯𝐚𝐢𝐥𝐚𝐛𝐥𝐞 𝐂𝐨𝐦𝐦𝐚𝐧𝐝𝐬 🧰 (${commands.size})`;
-    const sortedCats = Object.keys(cats).sort();
+    global.GoatBot.helpMenuCache = data;
 
-    for (const cat of sortedCats) {
-      const sortedCmds = cats[cat].sort();
-      const count = sortedCmds.length;
-
-      menu += `\n\n${fonts.developed(cat)} (${count})`;
-      
-      const formattedCmdsList = sortedCmds.map(cmd => `📄 ${fonts.christus(cmd)}`).join("   ");
-      menu += `\n${formattedCmdsList}`;
-    }
-
-    menu += `\n\n➜ 𝐂𝐨𝐦𝐦𝐚𝐧𝐝 𝐝𝐞𝐭𝐚𝐢𝐥𝐬: ${p}help <𝚌𝚘𝚖𝚖𝚊𝚗𝚍𝚎>`;
-    menu += `\n➜ 𝐁𝐚𝐬𝐢𝐜𝐬: ${p}help 𝚋𝚊𝚜𝚒𝚌𝚜`;
-    menu += `\n➜ 𝐒𝐞𝐚𝐫𝐜𝐡: ${p}help 𝚜𝚎𝚊𝚛𝚌𝚑 <𝚖𝗈𝚝>`;
-    menu += `\n➜ 𝐃𝐞𝐯𝐞𝐥𝐨𝐩𝐞𝐝 𝐛𝐲 @𝐒𝐡𝐚𝐝𝐞 🎀`;
-
-    return message.reply(fonts.christus(menu));
+    return message.reply(data.menu);
   }
 };
